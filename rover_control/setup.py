@@ -15,16 +15,15 @@ setup(
     zip_safe=True,
     maintainer='taha',
     maintainer_email='muhibtahaboy42@gmail.com',
-    description='TODO: Package description',
+    description='Rover kol teleop ve kontrol paketi',
     license='TODO: License declaration',
     extras_require={
-        'test': [
-            'pytest',
-        ],
+        'test': ['pytest'],
     },
-entry_points={
+    entry_points={
         'console_scripts': [
-            'baslat = rover_control.rover_teleop:main',
+            'mod1 = rover_control.rover_teleop_mod1:main',
+            'mod2 = rover_control.rover_teleop_mod2:main',
         ],
     },
 )
