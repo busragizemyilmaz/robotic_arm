@@ -80,7 +80,7 @@ source install/setup.bash
 sudo chmod 666 /dev/ttyUSB0
 
 # Driver node'u başlat
-ros2 launch rover_driver rover_driver.launch.py
+ros2 launch rover_driver driver.py
 ```
 
 ---
@@ -96,7 +96,7 @@ ls /dev/input/js*
 Ardından ilgili cihazı belirterek başlat (örnek `js1` için):
 
 ```bash
-ros2 launch rover_control rover_control.launch.py joy_device:=/dev/input/js1
+ros2 launch rover_control teleop.py joy_device:=/dev/input/js1
 ```
 
 > `joy_device` parametresi **her zaman açıkça yazılmalıdır.**
@@ -107,16 +107,16 @@ Ek seçenekler:
 
 ```bash
 # Mod 1 ile başlatma
-ros2 launch rover_control rover_control.launch.py joy_device:=/dev/input/js1 teleop_mode:=1
+ros2 launch rover_control teleop.py joy_device:=/dev/input/js1 teleop_mode:=1
 
 # Kalibrasyonlu başlatma
-ros2 launch rover_control rover_control.launch.py joy_device:=/dev/input/js1 calibrate:=true
+ros2 launch rover_control teleop.py joy_device:=/dev/input/js1 calibrate:=true
 
 # Hızı düşürerek başlatma (test için)
-ros2 launch rover_control rover_control.launch.py joy_device:=/dev/input/js1 motor_speed:=15000.0
+ros2 launch rover_control teleop.py joy_device:=/dev/input/js1 motor_speed:=15000.0
 
 # Her şey bir arada
-ros2 launch rover_control rover_control.launch.py joy_device:=/dev/input/js1 teleop_mode:=1 motor_speed:=20000.0 calibrate:=true
+ros2 launch rover_control teleop.py joy_device:=/dev/input/js1 teleop_mode:=1 motor_speed:=20000.0 calibrate:=true
 ```
 
 ---
@@ -139,7 +139,7 @@ bu kaymayı ölçüp dosyaya kaydeder — bir kez yapılır, tekrar gerekmez.
 3. Şu komutu çalıştır:
 
 ```bash
-ros2 launch rover_control rover_control.launch.py joy_device:=/dev/input/js1 calibrate:=true
+ros2 launch rover_control teleop.py joy_device:=/dev/input/js1 calibrate:=true
 ```
 
 Terminalde şunu görünce kalibrasyon tamamdır:
@@ -276,7 +276,7 @@ ls /dev/ttyUSB*
 ```bash
 ls /dev/input/js*
 # Çıktıya göre joy_device parametresini ayarla:
-ros2 launch rover_control rover_control.launch.py joy_device:=/dev/input/js1
+ros2 launch rover_control teleop.py joy_device:=/dev/input/js1
 ```
 
 ---
@@ -302,7 +302,7 @@ ros2 topic echo /robotarm_joy
 
 `joy_device` parametresini mutlaka açıkça belirt:
 ```bash
-ros2 launch rover_control rover_control.launch.py joy_device:=/dev/input/js1
+ros2 launch rover_control teleop.py joy_device:=/dev/input/js1
 ```
 
 Bu proje `/joy` yerine `/robotarm_joy` topic'ini kullandığı için
