@@ -1,27 +1,38 @@
 """
-rover_arm.launch.py
-====================
-Tüm rover kol düğümlerini tek seferde başlatır:
-  1. joy_node          — joystick sürücüsü
-  2. rover_teleop      — operatör arayüzü (Mod 1 veya Mod 2)
-  3. rover_driver_node — Roboclaw motor sürücüsü
+rover_control.launch.py
+========================
+ÇALIŞTIRILDIĞI YER : Operatör bilgisayarı (laptop/masaüstü)
+BAŞLATTIKLARI      : joy_node  +  rover_teleop (mod1 veya mod2)
 
-─────────────────────────────────────────────────────────
-  NORMAL BAŞLATMA (mevcut kalibrasyon dosyasını yükler):
-    ros2 launch rover_control rover_arm.launch.py
+Neden ayrı launch?
+  Aynı ağda başka bir paket de joy kullandığı için /joy topic'i çakışır.
+  Bu launch, joy_node'u /robotarm_joy namespace'ine remap'leyerek
+  sadece bu kolun teleop'unun kendi joystick'ini dinlemesini sağlar.
 
-  KALİBRASYONLU BAŞLATMA (joystick merkezdeyken):
-    ros2 launch rover_control rover_arm.launch.py calibrate:=true
+─────────────────────────────────────────────────────────────────────
+  NORMAL BAŞLATMA:
+    ros2 launch rover_control rover_control.launch.py
 
   MOD SEÇİMİ:
-    ros2 launch rover_control rover_arm.launch.py teleop_mode:=1
-    ros2 launch rover_control rover_arm.launch.py teleop_mode:=2
+    ros2 launch rover_control rover_control.launch.py teleop_mode:=1
+    ros2 launch rover_control rover_control.launch.py teleop_mode:=2
+
+  KALİBRASYON (joystick merkezdeyken):
+    ros2 launch rover_control rover_control.launch.py calibrate:=true
 
   ÖRNEKLER:
-    ros2 launch rover_control rover_arm.launch.py teleop_mode:=1 calibrate:=true
-    ros2 launch rover_control rover_arm.launch.py motor_speed:=20000.0
-    ros2 launch rover_control rover_arm.launch.py teleop_mode:=2 motor_speed:=15000.0 calibrate:=true
-─────────────────────────────────────────────────────────
+    ros2 launch rover_control rover_control.launch.py teleop_mode:=1 calibrate:=true
+    ros2 launch rover_control rover_control.launch.py motor_speed:=20000.0
+    ros2 launch rover_control rover_control.launch.py teleop_mode:=2 motor_speed:=15000.0 calibrate:=true
+
+  JOY CİHAZ NUMARASI (iki joy varsa hangisinin bu kol için olduğunu belirt):
+    ros2 launch rover_control rover_control.launch.py joy_device:=/dev/input/js1
+─────────────────────────────────────────────────────────────────────
+
+TOPIC AKIŞI:
+  [joy_node]  --/robotarm_joy-->  [rover_teleop_node]  --/motor_komutlari-->  (driver bunu dinler)
+
+NOT: driver_node ayrı bir makinede (Jetson) rover_driver.launch.py ile başlatılır.
 """
 
 from launch import LaunchDescription
@@ -43,21 +54,27 @@ def launch_setup(context, *args, **kwargs):
     nodes = [
         # ------------------------------------------------------------------
         # joy_node
+        # /joy  →  /robotarm_joy  olarak remap edilir.
+        # Böylece aynı bilgisayarda çalışan diğer joy paketleriyle çakışmaz.
         # ------------------------------------------------------------------
         Node(
             package='joy',
             executable='joy_node',
-            name='joy_node',
+            name='robotarm_joy_node',           # node adı da benzersiz
             parameters=[{
-                'device_name':    joy_dev,
-                'deadzone':       0.05,
+                'device_name':     joy_dev,
+                'deadzone':        0.05,
                 'autorepeat_rate': 20.0,
             }],
+            remappings=[
+                ('joy', 'robotarm_joy'),         # /joy → /robotarm_joy
+            ],
             output='screen',
         ),
 
         # ------------------------------------------------------------------
         # rover_teleop (mod1 veya mod2)
+        # Teleop da /joy yerine /robotarm_joy'u dinleyecek şekilde remap edilir.
         # ------------------------------------------------------------------
         Node(
             package='rover_control',
@@ -69,17 +86,9 @@ def launch_setup(context, *args, **kwargs):
                 'calibration_file': cal_file,
                 'calibrate':        calibrate,
             }],
-            output='screen',
-        ),
-
-        # ------------------------------------------------------------------
-        # rover_driver_node
-        # sudo chmod 666 /dev/ttyUSB0
-        # ------------------------------------------------------------------
-        Node(
-            package='rover_driver',
-            executable='driver_node',
-            name='rover_driver_node',
+            remappings=[
+                ('joy', 'robotarm_joy'),         # /joy → /robotarm_joy
+            ],
             output='screen',
         ),
     ]
@@ -117,7 +126,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'joy_device',
             default_value='',
-            description='Joystick cihaz adi (bos birakinca ilk bulunan kullanilir)',
+            description='Joystick cihaz adi veya yolu (orn: /dev/input/js1). Bos: ilk bulunan.',
         ),
 
         OpaqueFunction(function=launch_setup),
