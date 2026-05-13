@@ -1,4 +1,6 @@
-from setuptools import find_packages, setup
+import os
+from glob import glob
+from setuptools import setup, find_packages
 
 package_name = 'rover_control'
 
@@ -10,20 +12,19 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*launch.[pxy][yma]*'))),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='taha',
-    maintainer_email='muhibtahaboy42@gmail.com',
-    description='Rover kol teleop ve kontrol paketi',
+    maintainer='busragizemyilmaz',
+    maintainer_email='busragizemyilmaz.dev@gmail.com',
+    description='Rover teleop control package',
     license='TODO: License declaration',
-    extras_require={
-        'test': ['pytest'],
-    },
+    tests_require=['pytest'],
     entry_points={
-        'console_scripts': [
-            'mod1 = rover_control.rover_teleop_mod1:main',
-            'mod2 = rover_control.rover_teleop_mod2:main',
-        ],
-    },
+	    'console_scripts': [
+		'mod1 = rover_control.rover_teleop_mod1:main',
+		'mod2 = rover_control.rover_teleop_mod2:main',
+	    ],
+	},
 )

@@ -10,8 +10,8 @@ from std_msgs.msg import Float32MultiArray
 # ==============================================================================
 #  Logitech Attack 3 - Eksen & Buton Haritası
 # ==============================================================================
-#  axes[0]  : X ekseni  (sola = +1.0,  sağa = -1.0)  → M1
-#  axes[1]  : Y ekseni  (ileri = +1.0, geri = -1.0)  → (Gripper — kapalı)
+#  axes[0]  : X ekseni  (sola = +1.0,  sağa = -1.0)   → M1
+#  axes[1]  : Y ekseni  (ileri = +1.0, geri = -1.0)   → Gripper (ileri=aç, geri=kapat)
 #
 #  buttons[0]  : Tetik (Trigger)  ← BOŞ (ileride kullanılacak)
 #  buttons[1]  : Buton 2          ← M2 İleri
@@ -30,7 +30,7 @@ from std_msgs.msg import Float32MultiArray
 #    Sonraki başlatmalarda calibrate:=false (varsayılan) → dosyadan yüklenir
 #
 #  data[] İndeks Haritası (driver_node ile birebir aynı):
-#  0:Boş  1:Boş  2:M1  3:M2  4:M3  5:M4  6:M5  7:M6  8:Gripper(kapalı)
+#  0:Boş  1:Boş  2:M1  3:M2  4:M3  5:M4  6:M5  7:M6  8:Gripper
 # ==============================================================================
 
 DEFAULT_CAL_PATH = os.path.expanduser("~/.ros/joystick_cal.txt")
@@ -78,7 +78,8 @@ class RoverTeleopMod1(Node):
         self.timer = self.create_timer(0.1, self.timer_callback)
         self.get_logger().info(
             "MOD 1 HAZIR!\n"
-            "  axes[0] sag/sol → M1\n"
+            "  axes[0] sag/sol      → M1\n"
+            "  axes[1] ileri/geri   → Gripper (ileri=ac, geri=kapat)\n"
             "  Buton ciftleri (2-11) ile M2-M6 kontrol\n"
             "  Trigger (Buton 1) → BOŞ")
 
@@ -168,7 +169,12 @@ class RoverTeleopMod1(Node):
         elif ax0 < -deadzone:
             emirler.data[2] = -motor_speed
 
-        # Gripper (data[8]) — kapalı
+        # Gripper (axes[1] ileri/geri) — ileri: aç, geri: kapat
+        ax1 = self.get_axis(msg, 1)
+        if ax1 > deadzone:
+            emirler.data[8] = motor_speed
+        elif ax1 < -deadzone:
+            emirler.data[8] = -motor_speed
 
         # --- BUTONLAR (çift, basılı tutunca sürekli çalışır) ---
 

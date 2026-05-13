@@ -22,7 +22,7 @@ from std_msgs.msg import Float32MultiArray
 #  buttons[5]  : Buton 6          ← M4 seçimi
 #  buttons[6]  : Buton 7          ← M5 seçimi
 #  buttons[7]  : Buton 8          ← M6 seçimi
-#  buttons[8]  : Buton 9          ← BOŞ (Gripper ileride)
+#  buttons[8]  : Buton 9          ← Gripper seçimi
 #
 #  İki Slot Mantığı:
 #  ┌─────────┬────────────────────────────────────────────┐
@@ -37,7 +37,7 @@ from std_msgs.msg import Float32MultiArray
 #    Sonraki başlatmalarda calibrate:=false (varsayılan) → dosyadan yüklenir
 #
 #  data[] İndeks Haritası (driver_node ile birebir aynı):
-#  0:Boş  1:Boş  2:M1  3:M2  4:M3  5:M4  6:M5  7:M6  8:Gripper(kapalı)
+#  0:Boş  1:Boş  2:M1  3:M2  4:M3  5:M4  6:M5  7:M6  8:Gripper
 # ==============================================================================
 
 BUTON_MOTOR_MAP = {
@@ -47,9 +47,10 @@ BUTON_MOTOR_MAP = {
     5: 5,   # Buton 6 → M4
     6: 6,   # Buton 7 → M5
     7: 7,   # Buton 8 → M6
+    8: 8,   # Buton 9 → Gripper
 }
 
-MOTOR_ISIM = {2: "M1", 3: "M2", 4: "M3", 5: "M4", 6: "M5", 7: "M6"}
+MOTOR_ISIM = {2: "M1", 3: "M2", 4: "M3", 5: "M4", 6: "M5", 7: "M6", 8: "Gripper"}
 
 DEFAULT_CAL_PATH = os.path.expanduser("~/.ros/joystick_cal.txt")
 
@@ -101,6 +102,7 @@ class RoverTeleopMod2(Node):
         self.get_logger().info(
             "MOD 2 HAZIR!\n"
             "  Buton 3-8 → motor sec (1. basis Slot-A, 2. basis Slot-B)\n"
+            "  Buton 9   → Gripper sec\n"
             "  Ayni butona tekrar bas  → o slotu bosalt\n"
             "  Trigger & Buton 2 → BOS")
 
