@@ -4,16 +4,16 @@ rover_driver.launch.py
 ÇALIŞTIRILDIĞI YER : Jetson (robot üzerindeki bilgisayar)
 BAŞLATTIKLARI      : rover_driver_node (Roboclaw motor sürücüsü)
 
-Bu launch yalnızca driver_node'u ayağa kaldırır.
-joy ve teleop bilgisayarda çalışır; bu node sadece
-/motor_komutlari topic'ini dinleyerek motorları sürer.
-
 ─────────────────────────────────────────────────────────────────────
-  BAŞLATMA:
+  BAŞLATMA (varsayılan port):
     ros2 launch rover_driver rover_driver.launch.py
 
+  PORT BELİRTME (iki USB varsa hangisi Roboclaw'a bağlı?):
+    ros2 launch rover_driver rover_driver.launch.py port_name:=/dev/ttyUSB0
+    ros2 launch rover_driver rover_driver.launch.py port_name:=/dev/ttyUSB1
+
   NOT: USB izni için önce çalıştır:
-    sudo chmod 666 /dev/ttyUSB0
+    sudo chmod 666 /dev/ttyUSB0   (veya ttyUSB1)
 ─────────────────────────────────────────────────────────────────────
 
 TOPIC AKIŞI:
@@ -21,20 +21,34 @@ TOPIC AKIŞI:
 """
 
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
+    port_name = LaunchConfiguration('port_name')
+    baud_rate = LaunchConfiguration('baud_rate')
+
     return LaunchDescription([
-        # ------------------------------------------------------------------
-        # rover_driver_node
-        # Roboclaw üzerinden motorları sürer.
-        # /motor_komutlari topic'ini dinler, başka bir şey başlatmaz.
-        # ------------------------------------------------------------------
+        DeclareLaunchArgument(
+            'port_name',
+            default_value='/dev/ttyUSB0',
+            description='Roboclaw USB port (orn: /dev/ttyUSB0 veya /dev/ttyUSB1)',
+        ),
+        DeclareLaunchArgument(
+            'baud_rate',
+            default_value='115200',
+            description='Roboclaw baud rate',
+        ),
         Node(
             package='rover_driver',
             executable='driver_node',
             name='rover_driver_node',
             output='screen',
+            parameters=[
+                {'port_name': port_name},
+                {'baud_rate': baud_rate},
+            ],
         ),
     ])

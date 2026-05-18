@@ -17,7 +17,7 @@ robotic_arm/
 │   │   └── rover_control.launch.py    ← Bilgisayarda çalıştırılır
 │   ├── rover_control/
 │   │   ├── rover_teleop_mod1.py       ← Mod 1: Çift-buton mantığı
-│   │   └── rover_teleop_mod2.py       ← Mod 2: İki-slot seçim mantığı
+│   │   └── rover_teleop_mod2.py       ← Mod 2: İki-slot seçim mantığı (varsayılan)
 │   ├── setup.py
 │   └── package.xml
 │
@@ -36,20 +36,20 @@ robotic_arm/
 ## Sistem Mimarisi
 
 ```
-[ Operatör Bilgisayarı ]                  [ Jetson (robot üzerinde) ]
-─────────────────────────────────         ──────────────────────────────────
-joy_node  (/robotarm_joy)                 rover_driver_node
-    │                                           │
-    ▼                                           │ /dev/ttyUSB0
-rover_teleop_node                         ──────┤
-    │                                      Roboclaw 0x80 → M4, M1
-    │   /motor_komutlari (ROS 2 ağ)        Roboclaw 0x81 → M2, M3
-    └──────────────────────────────────►   Roboclaw 0x82 → M5, M6
-                                           Roboclaw 0x83 → Gripper
+[ Operatör Bilgisayarı ]                        [ Jetson (robot üzerinde) ]
+────────────────────────────────────            ─────────────────────────────────────
+joy_node  (/mobility_joy)                       rover_driver_node
+    │                                                 │
+    ▼                                                 │ /dev/ttyUSB0 (veya ttyUSB1)
+rover_teleop_node                              ───────┤
+    │                                           Roboclaw 0x80 → M1, Gripper
+    │   /motor_komutlari  (ROS 2 ağı)           Roboclaw 0x81 → M2, M3
+    └──────────────────────────────────────►    Roboclaw 0x82 → M4, M5
 ```
 
-> `/robotarm_joy`: Aynı ağda başka bir paket de `joy` kullandığı için topic
-> çakışmasını önlemek amacıyla bu proje `/joy` yerine `/robotarm_joy` topic'ini kullanır.
+> `/robotarm_joy`: Aynı bilgisayarda mobility joystick de çalıştığı için
+> topic çakışmasını önlemek amacıyla bu proje `/joy` yerine `/robotarm_joy`
+> topic'ini kullanır. Mobility `/mobility_joy` kullanır.
 
 ---
 
@@ -79,19 +79,20 @@ source install/setup.bash
 # USB izni (her bağlantıda bir kez)
 sudo chmod 666 /dev/ttyUSB0
 
-# Driver node'u başlat
+# Driver node'u başlat (varsayılan port: /dev/ttyUSB0)
 ros2 launch rover_driver rover_driver.launch.py
+
+# Port farklıysa açıkça belirt
+ros2 launch rover_driver rover_driver.launch.py port_name:=/dev/ttyUSB1
 ```
 
 `✅ Roboclaw CONNECTED/RECONNECTED!` mesajı çıkıyorsa bağlantı başarılıdır.
 
-> **Not:** Roboclaw adaptörü her zaman `/dev/ttyUSB0` olarak görünmelidir.
-> Farklı bir port atanırsa (`ttyUSB1`, `ttyUSB2` vb.) şunu çalıştır:
-> ```bash
-> ls /dev/ttyUSB*
-> sudo chmod 666 /dev/ttyUSBX   # X = görünen numara
-> ```
-> Ardından `driver_node.py` içindeki `self.port` değerini güncelle ve tekrar build et.
+Hangi portta göründüğünü bulmak için:
+```bash
+ls /dev/ttyUSB*
+sudo chmod 666 /dev/ttyUSBX   # X = görünen numara
+```
 
 ---
 
@@ -110,8 +111,8 @@ ros2 launch rover_control rover_control.launch.py joy_device:=/dev/input/js1
 ```
 
 > `joy_device` parametresi **her zaman açıkça yazılmalıdır.**
-> Boş bırakılırsa `joy_node` sistemdeki ilk joystick'i alır ve
-> başka bir paket de joy kullanıyorsa yanlış cihaza bağlanabilir.
+> Boş bırakılırsa `joy_node` sistemdeki ilk joystick'i alır; aynı bilgisayarda
+> mobility joystick de varsa yanlış cihaza bağlanabilir.
 
 Ek seçenekler:
 
@@ -172,13 +173,12 @@ Bundan sonraki tüm başlatmalarda kalibrasyon dosyası **otomatik yüklenir**,
 
 Her motor için iki ayrı buton vardır: biri ileri, biri geri.
 Butona **basılı tutulduğu sürece** motor döner, bırakınca durur.
-Aynı anda birden fazla motoru sürmek için birden fazla butona
-aynı anda basılabilir.
+Aynı anda birden fazla motoru sürmek için birden fazla butona aynı anda basılabilir.
 
 ```
-Logitech Attack 3 buton düzeni:
+Logitech Attack 3 buton düzeni (Mod 1):
 
-  [ TRG ]  ← Boş (ileride kullanılacak)
+  [ TRG ]  ← Boş
 
   [ 2 ][ 3 ]  ← M2 İleri / Geri
   [ 4 ][ 5 ]  ← M3 İleri / Geri
@@ -194,47 +194,47 @@ Logitech Attack 3 buton düzeni:
 
 ### Mod 2 — İki Slot Seçim (varsayılan)
 
-Önce bir motor **seçilir**, sonra joystick ile kontrol edilir.
+Önce bir motor **seçilir**, sonra joystick ile orantılı olarak kontrol edilir.
 Aynı anda **2 motor birden** kontrol edilebilir:
-- **Slot-A** → joystick ileri/geri
-- **Slot-B** → joystick sağa/sola
+- **Slot-A** → joystick ileri/geri (`axes[1]`)
+- **Slot-B** → joystick sağa/sola (`axes[0]`)
+
+Hız, joystick konumuna orantılıdır — tam basınca `motor_speed`, yarım basınca yarı hız.
 
 ```
-Logitech Attack 3 buton düzeni:
+Logitech Attack 3 buton düzeni (Mod 2):
 
-  [ TRG ]  ← Boş (ileride kullanılacak)
-  [ 2 ]    ← Boş (ileride kullanılacak)
+  [ TRG ]  ← Boş  (buttons[0])
 
-  [ 3 ]  ← M1 seç / bırak
-  [ 4 ]  ← M2 seç / bırak
-  [ 5 ]  ← M3 seç / bırak
-  [ 6 ]  ← M4 seç / bırak
-  [ 7 ]  ← M5 seç / bırak
-  [ 8 ]  ← M6 seç / bırak
-  [ 9 ]  ← Gripper seç / bırak
+  [ 2 ]  ← M1 seç / bırak  (buttons[1])
+  [ 3 ]  ← M2 seç / bırak  (buttons[2])
+  [ 4 ]  ← M3 seç / bırak  (buttons[3])
+  [ 5 ]  ← M4 seç / bırak  (buttons[4])
+  [ 6 ]  ← M5 seç / bırak  (buttons[5])
+  [ 7 ]  ← Gripper seç / bırak  (buttons[6])
 
-  Joystick İleri/Geri (axes[1])  ← Slot-A'daki motoru döndürür
-  Joystick Sol/Sağ   (axes[0])  ← Slot-B'deki motoru döndürür
+  Joystick İleri/Geri (axes[1])  ← Slot-A'daki motoru döndürür (orantılı)
+  Joystick Sol/Sağ   (axes[0])  ← Slot-B'deki motoru döndürür (orantılı)
 ```
 
 **Örnek kullanım:**
-1. Buton 3'e bas → terminalde `M1 -> Slot-A` yazar, joystick ileri/geri M1'i döndürür
-2. Buton 5'e bas → terminalde `M3 -> Slot-B` yazar, joystick sağa/sola M3'ü döndürür
-3. Buton 3'e tekrar bas → M1 Slot-A'dan çıkar, slot boşalır
-4. İki slot doluyken yeni bir butona basarsan → terminalde uyarı verir, önce bir motoru bırakman gerekir
+1. Buton 2'ye bas → terminalde `Slot-A: M1` yazar, joystick ileri/geri M1'i döndürür
+2. Buton 4'e bas → terminalde `Slot-B: M3` yazar, joystick sağa/sola M3'ü döndürür
+3. Buton 2'ye tekrar bas → M1 Slot-A'dan çıkar, slot boşalır
+4. İki slot doluyken yeni bir butona basarsan → `Her iki slot dolu! Once birini bosaltin.` uyarısı verir
 
 ---
 
 ## Motor — Roboclaw Bağlantı Haritası
 
 Roboclaw kartları USB üzerinden **daisy-chain** bağlıdır, her kartın ayrı adresi vardır.
+Driver'daki indeks sırası: `0:M1, 1:M2, 2:M3, 3:M4, 4:M5, 5:Gripper`
 
 | Roboclaw Adresi | M1 Çıkışı | M2 Çıkışı |
 |---|---|---|
-| 0x80 (128) | 4. Motor | 1. Motor |
-| 0x81 (129) | 2. Motor | 3. Motor |
-| 0x82 (130) | 5. Motor | 6. Motor |
-| 0x83 (131) | Gripper  | —        |
+| 0x80 (128) | M1        | Gripper   |
+| 0x81 (129) | M2        | M3        |
+| 0x82 (130) | M4        | M5        |
 
 ---
 
@@ -253,7 +253,10 @@ Roboclaw kartları USB üzerinden **daisy-chain** bağlıdır, her kartın ayrı
 
 ### rover_driver.launch.py (Jetson)
 
-Parametre almaz. Sadece `driver_node`'u başlatır.
+| Parametre | Varsayılan | Açıklama |
+|---|---|---|
+| `port_name` | `/dev/ttyUSB0` | Roboclaw USB port (ör: `/dev/ttyUSB0`, `/dev/ttyUSB1`) |
+| `baud_rate` | `115200` | Seri haberleşme hızı |
 
 ---
 
@@ -283,18 +286,12 @@ ls /dev/ttyUSB*
 
 **Roboclaw bağlanamıyor (`Connection Failed`):**
 
-1. USB kablosunu kontrol et — CH340 adaptörün bilgisayara bağlı olduğundan emin ol
+1. USB kablosunu kontrol et — adaptörün Jetson'a bağlı olduğundan emin ol
 2. Roboclaw kartlarının güç kaynağı açık mı? Yeşil LED yanıyor mu?
-3. Port numarasını kontrol et:
+3. Port numarasını kontrol et, ardından launch'a açıkça belirt:
 ```bash
 ls -la /dev/ttyUSB*
-```
-`ttyUSB0` değil de başka bir numara gösteriyorsa `driver_node.py` içindeki
-`self.port` değerini güncelle ve tekrar build et:
-```bash
-cd ~/ros2_ws
-colcon build --packages-select rover_driver
-source install/setup.bash
+ros2 launch rover_driver rover_driver.launch.py port_name:=/dev/ttyUSBX
 ```
 
 ---
@@ -302,7 +299,6 @@ source install/setup.bash
 **Joystick hangi js numarasında?**
 ```bash
 ls /dev/input/js*
-# Çıktıya göre joy_device parametresini ayarla:
 ros2 launch rover_control rover_control.launch.py joy_device:=/dev/input/js1
 ```
 
@@ -311,7 +307,12 @@ ros2 launch rover_control rover_control.launch.py joy_device:=/dev/input/js1
 **Motor ters dönüyor:**
 
 `rover_driver/driver_node.py` içinde ilgili `DutyM1M2` çağrısında
-değerin işaretini `+`/`-` olarak değiştir, ardından tekrar build et.
+değerin işaretini `+`/`-` olarak değiştir, ardından tekrar build et:
+```bash
+cd ~/ros2_ws
+colcon build --packages-select rover_driver
+source install/setup.bash
+```
 
 ---
 
@@ -326,7 +327,7 @@ ros2 topic echo /robotarm_joy
 
 ---
 
-**Yanlış joystick'i alıyor (başka paket de joy kullanıyor):**
+**Yanlış joystick'i alıyor (mobility joystick de aynı bilgisayarda):**
 
 `joy_device` parametresini mutlaka açıkça belirt:
 ```bash
@@ -334,7 +335,7 @@ ros2 launch rover_control rover_control.launch.py joy_device:=/dev/input/js1
 ```
 
 Bu proje `/joy` yerine `/robotarm_joy` topic'ini kullandığı için
-diğer paketle topic çakışması yaşanmaz; ancak `joy_node`'un
+mobility (`/mobility_joy`) ile topic çakışması yaşanmaz; ancak `joy_node`'un
 doğru fiziksel cihaza bağlandığından emin olmak için `joy_device`
 her zaman belirtilmelidir.
 
@@ -350,3 +351,9 @@ Bu hatalar zararsızdır, node'lar çalışmaya devam eder. Görmek istemiyorsan
 ```bash
 sudo rm -rf /dev/shm/fastrtps_*
 ```
+
+---
+
+## Bağlantılı Proje
+
+Rover hareket sistemi → [`rover_mobility`](https://github.com/busragizemyilmaz/rover_mobility)
