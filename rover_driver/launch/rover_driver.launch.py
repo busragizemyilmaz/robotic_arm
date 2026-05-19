@@ -17,7 +17,7 @@ BAŞLATTIKLARI      : rover_driver_node (Roboclaw motor sürücüsü)
 ─────────────────────────────────────────────────────────────────────
 
 TOPIC AKIŞI:
-  [rover_teleop_node (bilgisayar)]  --/motor_komutlari-->  [rover_driver_node (Jetson)]
+  [rover_teleop_node (bilgisayar)]  --/motor_commands-->  [rover_driver_node (Jetson)]
 """
 
 from launch import LaunchDescription

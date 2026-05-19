@@ -57,7 +57,7 @@ class RoverTeleopMod2(Node):
             self.get_logger().info("Kalibrasyon modu ACIK — joystick'i merkeze getirin.")
 
         self.subscription = self.create_subscription(Joy, 'joy', self.joy_callback, 10)
-        self.publisher_ = self.create_publisher(Float32MultiArray, 'motor_komutlari', 10)
+        self.publisher_ = self.create_publisher(Float32MultiArray, 'motor_commands', 10)
         self.timer = self.create_timer(0.1, self.timer_callback)
 
     def _load_calibration(self):

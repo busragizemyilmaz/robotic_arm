@@ -27,7 +27,7 @@ class RoverDriver(Node):
 
         self.subscription = self.create_subscription(
             Float32MultiArray,
-            'motor_komutlari',
+            'motor_commands',
             self.listener_callback,
             10)
 
@@ -65,6 +65,9 @@ class RoverDriver(Node):
             for i in range(6):
                 self.targets[i] = msg.data[i]
             self.last_msg_time = time.time()
+        else:
+            self.get_logger().warn(f"Geçersiz mesaj boyutu: {len(msg.data)}")
+            return
 
     def control_loop(self):
         elapsed_time = time.time() - self.last_msg_time

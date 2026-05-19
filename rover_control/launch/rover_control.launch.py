@@ -30,7 +30,7 @@ Neden ayrı launch?
 ─────────────────────────────────────────────────────────────────────
 
 TOPIC AKIŞI:
-  [joy_node]  --/robotarm_joy-->  [rover_teleop_node]  --/motor_komutlari-->  (driver bunu dinler)
+  [joy_node]  --/robotarm_joy-->  [rover_teleop_node]  --/motor_commands-->  (driver bunu dinler)
 
 NOT: driver_node ayrı bir makinede (Jetson) rover_driver.launch.py ile başlatılır.
 """

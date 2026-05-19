@@ -38,12 +38,12 @@ robotic_arm/
 ```
 [ Operatör Bilgisayarı ]                        [ Jetson (robot üzerinde) ]
 ────────────────────────────────────            ─────────────────────────────────────
-joy_node  (/mobility_joy)                       rover_driver_node
+joy_node  (/robotarm_joy)                       rover_driver_node
     │                                                 │
     ▼                                                 │ /dev/ttyUSB0 (veya ttyUSB1)
 rover_teleop_node                              ───────┤
     │                                           Roboclaw 0x80 → M1, Gripper
-    │   /motor_komutlari  (ROS 2 ağı)           Roboclaw 0x81 → M2, M3
+    │   /motor_commands  (ROS 2 ağı)            Roboclaw 0x81 → M2, M3
     └──────────────────────────────────────►    Roboclaw 0x82 → M4, M5
 ```
 
@@ -319,7 +319,7 @@ source install/setup.bash
 **Motorlar hiç hareket etmiyor, hata da yok:**
 ```bash
 # Teleop'tan komut geliyor mu kontrol et:
-ros2 topic echo /motor_komutlari
+ros2 topic echo /motor_commands
 
 # Joy topic'i geliyor mu kontrol et:
 ros2 topic echo /robotarm_joy
